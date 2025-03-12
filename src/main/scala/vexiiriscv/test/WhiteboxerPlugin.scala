@@ -219,9 +219,13 @@ class WhiteboxerPlugin(withOutputs : Boolean) extends FiberPlugin{
         //  获取 UOP，并用 wrap 封装。
 
         val uop_rd_addr = wrap(U(reader(_(Decode.UOP))(Const.rdRange)).resize(32))
+        // 在 UOP 中切出 rd_addr，并用 wrap 封装。
         val wbp = host[WriteBackPlugin]
+        //初始化写回服务的 Plugin
         val reg_data = wrap(wbp.logic.write.port.data)
+        // 在wbp中获取写回 reg_data，并用 wrap 封装。
         val reg_valid = wrap(wbp.logic.write.port.valid)
+        // 在wbp中获取写回 reg_valid 信号，并用 wrap 封装。
       }
     }
 
