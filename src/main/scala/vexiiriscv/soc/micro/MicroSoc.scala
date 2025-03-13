@@ -2,6 +2,7 @@ package vexiiriscv.soc.micro
 
 import spinal.core._
 import spinal.core.fiber.Fiber
+import spinal.core.sim.{SimPublic, tracerTag}
 import spinal.lib._
 import spinal.lib.bus.amba3.apb.Apb3
 import spinal.lib.bus.tilelink
@@ -14,6 +15,7 @@ import spinal.lib.misc.{Elf, TilelinkClintFiber}
 import spinal.lib.misc.plic.TilelinkPlicFiber
 import spinal.lib.system.tag.MemoryConnection
 import vexiiriscv.soc.TilelinkVexiiRiscvFiber
+import vexiiriscv.test.WhiteboxerPlugin
 
 
 // Lets define our SoC toplevel
@@ -26,7 +28,7 @@ class MicroSoc(p : MicroSocParam) extends Component {
     val mainBus = tilelink.fabric.Node()
 
     val cpu = new TilelinkVexiiRiscvFiber(p.vexii.plugins())
-    if(p.socCtrl.withDebug) socCtrl.debugModule.bindHart(cpu)
+    if (p.socCtrl.withDebug) socCtrl.debugModule.bindHart(cpu)
     mainBus << cpu.buses
     cpu.dBus.setDownConnection(a = StreamPipe.S2M) // Let's add a bit of pipelining on the cpu.dBus to increase FMax
 
@@ -59,17 +61,17 @@ class MicroSoc(p : MicroSocParam) extends Component {
       plic.mapUpInterrupt(1, uart.interrupt)
 
       val spiFlash = p.withSpiFlash generate new TilelinkSpiXdrMasterFiber(SpiXdrMasterCtrl.MemoryMappingParameters(
-        SpiXdrMasterCtrl.Parameters(8, 12, SpiXdrParameter(2, 2, 1)).addFullDuplex(0,1,false),
+        SpiXdrMasterCtrl.Parameters(8, 12, SpiXdrParameter(2, 2, 1)).addFullDuplex(0, 1, false),
         xipEnableInit = true,
         xip = SpiXdrMasterCtrl.XipBusParameters(addressWidth = 24, lengthWidth = 6)
-      )){
+      )) {
         plic.mapUpInterrupt(2, interrupt)
         ctrl at 0x10002000 of bus32
         xip at 0x20000000 of bus32
       }
 
 
-      val demo = p.demoPeripheral.map(new PeripheralDemoFiber(_){
+      val demo = p.demoPeripheral.map(new PeripheralDemoFiber(_) {
         node at 0x10003000 of bus32
         plic.mapUpInterrupt(3, interrupt)
       })
@@ -79,9 +81,29 @@ class MicroSoc(p : MicroSocParam) extends Component {
       val cpuClint = cpu.bind(clint) // Timer interrupt + time reference + stop time connection
     }
 
-    val patcher = Fiber patch new Area{
+    val patcher = Fiber patch new Area {
       p.ramElf.foreach(new Elf(_, p.vexii.xlen).init(ram.thread.logic.mem, 0x80000000l))
       println(MemoryConnection.getMemoryTransfers(cpu.dBus).mkString("\n"))
+
+      // Add this
+      // If you want to add all the cpu ports to the top level
+//      cpu.logic.core.host[WhiteboxerPlugin].logic.get //Ensure that all the WhiteboxerPlugin generation is done.
+//      cpu.logic.core.dslBody.walkDeclarations{ // Look at all the declaration done in the CPU
+//        case bt : BaseType if bt.hasTag(SimPublic) => { // For regular signal which are tagged with the SimPublic
+//          cpu.logic.core.rework(out(bt)) // Make that signal an output of the CPU
+//          bt.toIo.setCompositeName(bt) //Propagate that signal to the IO of the toplevel and name it the same as bt
+//        }
+
+      // If you only want to add some parts
+      cpu.logic.core.host[WhiteboxerPlugin].logic.get //Ensure that all the WhiteboxerPlugin generation is done.
+      cpu.logic.core.dslBody.walkDeclarations { // Look at all the declaration done in the CPU
+        // We use a new "tracerTag" here, which will help us choose the specific tracer outputs we want.
+        case bt: BaseType if bt.hasTag(tracerTag) => { // For regular signal which are tagged with the tracerTag
+          cpu.logic.core.rework(out(bt)) // Make that signal an output of the CPU
+          bt.toIo.setCompositeName(bt) // Propagate that signal to the IO of the toplevel and name it the same as bt
+        }
+        case _ =>
+      }
     }
   }
 }

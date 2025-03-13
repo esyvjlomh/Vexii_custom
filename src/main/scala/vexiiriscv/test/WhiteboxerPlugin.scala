@@ -226,6 +226,8 @@ class WhiteboxerPlugin(withOutputs : Boolean) extends FiberPlugin{
         // 在wbp中获取写回 reg_data，并用 wrap 封装。
         val reg_valid = wrap(wbp.logic.write.port.valid)
         // 在wbp中获取写回 reg_valid 信号，并用 wrap 封装。
+
+        tracerTag(valid,pc,uop,uop_rd_addr,reg_data,reg_valid)
       }
     }
 
@@ -724,7 +726,6 @@ class WhiteboxerPlugin(withOutputs : Boolean) extends FiberPlugin{
       //  port.commit 的仿真代理。
     }
 
-    class commitsProxy(port:)
     class FlushProxy(port: Flow[FlushCmd]) {
       //  Flush 相关的 Proxy 类。
       val withUopId = port.withUopId
