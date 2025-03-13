@@ -27,6 +27,10 @@ import scala.collection.mutable.ArrayBuffer
 //  这个插件旨在简化和“标准化”仿真观察 VexiiRiscv 核心的方式，并了解它在做什么。
 //  它还生成一组易于读取的信号，这些信号可以在波形中读取。
 //  所有 “Proxy” 都用于减少在 SpinalHDL 仿真中读取硬件信号的开销。
+
+/** Tag tracerTag which are used in Whitebox and MicroSoc!  */
+object tracerTag extends SpinalTag
+
 class WhiteboxerPlugin(withOutputs : Boolean) extends FiberPlugin{
   //  WhiteboxerPlugin 类定义，继承自 FiberPlugin，并接受一个布尔值参数 withOutputs，
   //  指示是否将内部信号输出到物理输出引脚，以便在仿真器中观察。FiberPlugin 是一种插件类型。

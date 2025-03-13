@@ -2,7 +2,7 @@ package vexiiriscv.soc.micro
 
 import spinal.core._
 import spinal.core.fiber.Fiber
-import spinal.core.sim.{SimPublic, tracerTag}
+import spinal.core.sim.SimPublic
 import spinal.lib._
 import spinal.lib.bus.amba3.apb.Apb3
 import spinal.lib.bus.tilelink
@@ -15,7 +15,7 @@ import spinal.lib.misc.{Elf, TilelinkClintFiber}
 import spinal.lib.misc.plic.TilelinkPlicFiber
 import spinal.lib.system.tag.MemoryConnection
 import vexiiriscv.soc.TilelinkVexiiRiscvFiber
-import vexiiriscv.test.WhiteboxerPlugin
+import vexiiriscv.test.{WhiteboxerPlugin, tracerTag}
 
 
 // Lets define our SoC toplevel
