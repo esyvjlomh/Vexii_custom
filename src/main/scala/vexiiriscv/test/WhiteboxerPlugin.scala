@@ -11,9 +11,9 @@ import vexiiriscv.execute._
 import vexiiriscv.execute.lsu._
 import vexiiriscv.fetch.{Fetch, FetchPipelinePlugin}
 import vexiiriscv.misc.{PipelineBuilderPlugin, PrivilegedPlugin, TrapPlugin}
-import vexiiriscv.prediction.{BtbPlugin, LearnCmd, LearnPlugin}
-import vexiiriscv.regfile.{RegFileWrite, RegFileWriter, RegFileWriterService}
-import vexiiriscv.riscv.{Const, Riscv}
+import vexiiriscv.prediction.{LearnCmd, LearnPlugin}
+import vexiiriscv.regfile.{RegFileWriter, RegFileWriterService}
+import vexiiriscv.riscv._
 import vexiiriscv.schedule.{DispatchPlugin, FlushCmd, ReschedulePlugin}
 
 import scala.collection.mutable.ArrayBuffer
@@ -136,6 +136,19 @@ class WhiteboxerPlugin(withOutputs : Boolean) extends FiberPlugin{
       //  获取 hartId 信号，并用 wrap 封装。
       val microOpId = wrap(c(Decode.UOP_ID))
       //  获取 microOpId 信号，并用 wrap 封装。
+
+//      val n = Node()
+//      var rs1 = Bits(32 bits)
+//      var rs2 = Bits(32 bits)
+//      rs1 = n(eu.apply(IntRegFile, RS1))
+//      val rs1_out = wrap(rs1)
+//      rs2 = n(eu.apply(IntRegFile, RS2))
+//      val rs2_out = wrap(rs2)
+//
+//      tracerTag(rs1_out,rs2_out)
+
+//      val rs1 = wrap(eu.apply(IntRegFile, RS1))
+//      val rs2 = wrap(eu.apply(IntRegFile, RS2))
     }
 
     val withCsr = host.get[CsrAccessPlugin].nonEmpty
@@ -211,6 +224,8 @@ class WhiteboxerPlugin(withOutputs : Boolean) extends FiberPlugin{
       }
       val ports = for(i <- 0 until ctrls.size) yield new Area{
         //  对于每个执行单元，定义一个 Area。
+//        val elp = host.find[ExecuteLanePlugin](_.laneName == ctrls)
+
         val oh = ctrls.map(ctrl => ctrl.down.isFiring && ctrl.down(COMMIT) && ctrl.down(Execute.LANE_AGE) === i)
         //  生成一个 one-hot 编码，表示哪个执行单元在提交。
         val reader = ctrls.reader(oh)
@@ -224,6 +239,11 @@ class WhiteboxerPlugin(withOutputs : Boolean) extends FiberPlugin{
 
         val uop_rd_addr = wrap(U(reader(_(Decode.UOP))(Const.rdRange)).resize(32))
         // 在 UOP 中切出 rd_addr，并用 wrap 封装。
+        val rs1_addr = wrap(U(reader(_(Decode.UOP))(Const.rs1Range)).resize(32))
+        // 在 UOP 中切出 rs1_addr，并用 wrap 封装。
+        val rs2_addr = wrap(U(reader(_(Decode.UOP))(Const.rs2Range)).resize(32))
+        // 在 UOP 中切出 rs2_addr，并用 wrap 封装。
+
         val wbp = host[WriteBackPlugin]
         //初始化写回服务的 Plugin
         val reg_data = wrap(wbp.logic.write.port.data)
@@ -231,7 +251,22 @@ class WhiteboxerPlugin(withOutputs : Boolean) extends FiberPlugin{
         val reg_valid = wrap(wbp.logic.write.port.valid)
         // 在wbp中获取写回 reg_valid 信号，并用 wrap 封装。
 
-        tracerTag(valid,pc,uop,uop_rd_addr,reg_data,reg_valid)
+        tracerTag(valid,pc,uop,uop_rd_addr,reg_data,reg_valid,rs1_addr,rs2_addr)
+
+//        val reg_data = Bits(32 bits)
+//        val reg_valid = Bool()
+
+//        val wbp = host.get[WriteBackPlugin] map (p => new Area {
+//          val c = p.logic.write.port
+//          reg_data := c.data
+//          reg_valid := c.valid
+//      })
+
+//        val elp = host[ExecuteLaneService]
+//        val rs1 = wrap(elp(IntRegFile, RS1).asBits)
+//        val rs2 = wrap(elp(IntRegFile, RS2))
+
+//        tracerTag(valid,pc,uop,uop_rd_addr,rs1_addr,rs2_addr)
       }
     }
 
